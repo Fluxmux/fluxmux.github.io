@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+    <meta charset="utf-8" />
+    <title>Smart Contract Private Variable Reader</title>
+  </head>
+  <body>
+    <div>
+      <div style="margin: auto; width: 50%; padding: 2.5%">
+        <label for="address">Smart contract address:</label>
+        <input type="text" id="address" name="address" style="width: 50%" />
+        <input type="button" value="Search" id="search" name="search" />
+      </div>
+      <div>
+        <table id="storageTable">
+          <thead></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+    <script>
+      const web3 = new Web3("https://cloudflare-eth.com");
+
+      class Storage {
+        constructor(position, value) {
+          this.position = position;
+          this.value = value;
+        }
+      }
+      document
+        .getElementById("search")
+        .addEventListener("click", async function getStorageAt() {
+          var table = document.getElementById("storageTable");
+          var tHead = table.getElementsByTagName("thead")[0];
+          tHead.innerHTML = "";
+          var tr = tHead.insertRow();
+          var th = document.createElement("th");
+          th.innerHTML = "#";
+          tr.appendChild(th);
+          th = document.createElement("th");
+          th.innerHTML = "value";
+          tr.appendChild(th);
+          th = document.createElement("th");
+          th.innerHTML = "utf-8";
+          tr.appendChild(th);
+          th = document.createElement("th");
+          th.innerHTML = "uint256";
+          tr.appendChild(th);
+
+          var tBody = table.getElementsByTagName("tbody")[0];
+          tBody.innerHTML = "";
+          tr = tBody.insertRow();
+          var td = document.createElement("td");
+          td.innerHTML = "loading";
+          tr.appendChild(td);
+          td = document.createElement("td");
+          td.innerHTML = "loading";
+          tr.appendChild(td);
+          td = document.createElement("td");
+          td.innerHTML = "loading";
+          tr.appendChild(td);
+          td = document.createElement("td");
+          td.innerHTML = "loading";
+          tr.appendChild(td);
+
+          var storageEmpty = 0;
+          var position = 0;
+          var storages = [];
+          while (storageEmpty < 10) {
+            var value = await web3.eth.getStorageAt(
+              document.getElementById("address").value,
+              position
+            );
+
+            if (
+              value ===
+              "0x0000000000000000000000000000000000000000000000000000000000000000"
+            ) {
+              storageEmpty++;
+            } else {
+              storageEmpty = 0;
+            }
+            storages.push(new Storage(position, value));
+            console.log(value);
+            position++;
+          }
+          for (var index = storages.length - 1; index >= 0; index--) {
+            if (
+              storages[index].value ===
+              "0x0000000000000000000000000000000000000000000000000000000000000000"
+            ) {
+              storages.pop();
+            } else {
+              break;
+            }
+          }
+          tBody.innerHTML = "";
+          for (var storage of storages) {
+            var row = tBody.insertRow(storage.position);
+
+            // Position
+            var cell = row.insertCell();
+            cell.innerHTML = storage.position;
+
+            // Value
+            cell = row.insertCell();
+            cell.innerHTML = storage.value.replace(
+              /^(0x)0+((\w{1})+)$/,
+              "$1$2"
+            );
+
+            // Decode ASCII
+            cell = row.insertCell();
+            try {
+              cell.innerHTML = web3.utils.hexToUtf8(storage.value);
+            } catch (err) {
+              cell.innerHTML = "invalid utf-8";
+            }
+
+            // Decode uint256
+            cell = row.insertCell();
+            try {
+              cell.innerHTML = web3.utils.hexToNumber(storage.value);
+            } catch (err) {
+              cell.innerHTML = "invalid uint256";
+            }
+          }
+        });
+
+      document
+        .getElementById("address")
+        .addEventListener("change", function checkAddress() {
+          if (web3.utils.isAddress(document.getElementById("address").value)) {
+            document.getElementById("address").style.backgroundColor =
+              "lightgreen";
+          } else {
+            document.getElementById("address").style.backgroundColor =
+              "lightpink";
+          }
+        });
+    </script>
+  </body>
+</html>
